@@ -129,6 +129,16 @@ export class WebhookSubscriptionService {
       throw new NotFoundException(`Webhook subscription ${id} not found`);
     }
 
+    // Re-validate URL at dispatch time to protect against DNS rebinding
+    try {
+      await validateWebhookUrl(subscription.url);
+    } catch (err) {
+      this.logger.warn(
+        `Ping to subscription ${id} rejected due to blocked/private URL: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return { reachable: false, responseTimeMs: 0 };
+    }
+
     const payload = JSON.stringify({
       type: 'ping',
       timestamp: new Date().toISOString(),

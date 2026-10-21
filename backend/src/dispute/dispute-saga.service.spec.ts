@@ -512,6 +512,26 @@ describe('DisputeSagaService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('throws ForbiddenException when caller wallet does not match jurorAddress', async () => {
+      await expect(
+        service.castVote(
+          sagaId,
+          { jurorAddress: JURORS[0], vote: 'depositor' },
+          'GDIFFERENTWALLET111111111111111111111111111111111111111111',
+        ),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('allows vote when caller wallet matches jurorAddress', async () => {
+      const saga = await service.castVote(
+        sagaId,
+        { jurorAddress: JURORS[0], vote: 'depositor' },
+        JURORS[0],
+      );
+      expect(saga.votes).toHaveLength(1);
+      expect(saga.votes![0].jurorAddress).toBe(JURORS[0]);
+    });
+
     it('throws ConflictException on duplicate vote', async () => {
       await service.castVote(sagaId, { jurorAddress: JURORS[0], vote: 'depositor' });
       await expect(

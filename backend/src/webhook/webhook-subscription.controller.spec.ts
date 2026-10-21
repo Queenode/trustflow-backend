@@ -471,6 +471,26 @@ describe('WebhookSubscriptionController (e2e)', () => {
         process.env.NODE_TLS_REJECT_UNAUTHORIZED = prev;
       }
     });
+
+    it('returns reachable=false and responseTimeMs=0 without connecting when URL now resolves to private address', async () => {
+      const { validateWebhookUrl } = require('./webhook.service');
+      const service = app.get(WebhookSubscriptionService);
+      const sub = await service.create({
+        dappId: DAPP_ID,
+        url: 'https://example.com/webhook',
+        topics: ['*'],
+      });
+
+      // Mock DNS change: validation now fails on ping (e.g. DNS rebinding to loopback)
+      (validateWebhookUrl as jest.Mock).mockRejectedValueOnce(
+        new Error('Webhook URL resolves to a private IP address: 127.0.0.1'),
+      );
+
+      const result = await service.ping(sub.id);
+      expect(result.reachable).toBe(false);
+      expect(result.responseTimeMs).toBe(0);
+      expect(result.statusCode).toBeUndefined();
+    });
   });
 
   // ── Ownership enforcement (cross-dApp access) ─────────────────────────────

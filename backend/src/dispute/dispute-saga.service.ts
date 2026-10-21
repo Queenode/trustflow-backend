@@ -600,10 +600,20 @@ export class DisputeSagaService implements OnModuleInit {
    * the verdict is computed automatically (exactly once, serialized per saga).
    * Compensating action: remove the vote and mark voting as incomplete.
    */
-  async castVote(sagaId: string, dto: CastVoteDto): Promise<DisputeSaga> {
+  async castVote(
+    sagaId: string,
+    dto: CastVoteDto,
+    callerAddress?: string,
+  ): Promise<DisputeSaga> {
     return this.sagaMutex.lock(sagaId, async () => {
       const saga = await this.findById(sagaId);
       this.assertStep(saga, DisputeStep.VOTING);
+
+      if (callerAddress && callerAddress !== dto.jurorAddress) {
+        throw new ForbiddenException(
+          `Authenticated wallet ${callerAddress} does not match juror address ${dto.jurorAddress}`,
+        );
+      }
 
       if (!saga.assignedJurors?.includes(dto.jurorAddress)) {
         throw new BadRequestException(`${dto.jurorAddress} is not an assigned juror for this saga`);

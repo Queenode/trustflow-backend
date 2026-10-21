@@ -124,9 +124,14 @@ export class DisputeSagaController {
   @ApiParam({ name: 'sagaId', example: 'saga-1234567890-abc' })
   @ApiResponse({ status: 200, type: DisputeSagaResponseDto })
   @ApiResponse({ status: 400, description: 'Juror not assigned or saga not at VOTING step' })
+  @ApiResponse({ status: 403, description: 'Authenticated wallet does not match juror address' })
   @ApiResponse({ status: 409, description: 'Juror has already voted' })
-  castVote(@Param('sagaId') sagaId: string, @Body() dto: CastVoteDto) {
-    return this.sagaService.castVote(sagaId, dto);
+  castVote(
+    @Param('sagaId') sagaId: string,
+    @Body() dto: CastVoteDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.sagaService.castVote(sagaId, dto, req.user?.address);
   }
 
   @Post(':sagaId/payout')
